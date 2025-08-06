@@ -10,21 +10,21 @@ type DateParts = {
   yyyy: string[]
 }
 
-const initialParts: DateParts = {
+const initialParts: Readonly<DateParts> = {
   MM: Array(2).fill(""),
   dd: Array(2).fill(""),
   yyyy: Array(4).fill(""),
 }
 
-const datePartsPosition: Record<Part, [number, number]> = {
+const datePartsPosition = {
   MM: [0, 2],
   dd: [2, 4],
   yyyy: [4, 8],
-}
+} as const
 
-const partsOrder: Part[] = ["MM", "dd", "yyyy"]
+const partsOrder = ["MM", "dd", "yyyy"] as const
 
-const dateFormat = "MM-dd-yyyy"
+const dateFormat = "MM-dd-yyyy" as const
 
 const fillDatePartBlanks = (part: Part, str: string) => {
   const [start, end] = datePartsPosition[part]
