@@ -3,38 +3,16 @@ import "./App.css"
 
 type Part = "dd" | "mm" | "yyyy"
 
-type Input = (string | undefined)[]
-
-type Stack<T> = {
-  set(val: string): T
-  get(): T
-}
-
 type DateParts = {
-  dd: Stack<Input>
-  mm: Stack<Input>
-  yyyy: Stack<Input>
-}
-
-function stack(length: number): Stack<Input> {
-  const arr: Input = Array.from({ length })
-
-  return {
-    set(val: string) {
-      arr.shift()
-      arr.push(val)
-      return arr
-    },
-    get() {
-      return arr
-    },
-  }
+  dd: string[]
+  mm: string[]
+  yyyy: string[]
 }
 
 const initialParts: DateParts = {
-  dd: stack(2),
-  mm: stack(2),
-  yyyy: stack(4),
+  dd: ["", ""],
+  mm: ["", ""],
+  yyyy: ["", "", "", ""],
 }
 
 const partsOrder: Part[] = ["dd", "mm", "yyyy"]
@@ -54,27 +32,29 @@ function App() {
       }
     }
 
-    if (e.key.match(/[0-9]/)) {
+    if (selectedPart && e.key.match(/[0-9]/)) {
       setDateParts((parts) => {
-        if (selectedPart) {
-          parts[selectedPart].set(e.key)
-        }
+        const partArr = parts[selectedPart].slice()
 
-        return { ...parts }
+        partArr.shift()
+        partArr.push(e.key)
+
+        return {
+          ...parts,
+          [selectedPart]: partArr,
+        }
       })
     }
   }
 
   const onPaste = (e: React.ClipboardEvent) => {
     const str = e.clipboardData.getData("Text").replace(/[^0-9]/g, "")
-
-    setDateParts((parts) => {
-      parts.dd.set(str.slice(0, 2))
-      parts.mm.set(str.slice(2, 4))
-      parts.yyyy.set(str.slice(4, 8))
-
-      return { ...parts }
-    })
+    
+    setDateParts(() => ({
+      dd: str.slice(0, 2).split("").concat(Array(2).fill("")).slice(0, 2),
+      mm: str.slice(2, 4).split("").concat(Array(2).fill("")).slice(0, 2),
+      yyyy: str.slice(4, 8).split("").concat(Array(4).fill("")).slice(0, 4),
+    }))
   }
 
   const onBlur = () => setSelectedPart(undefined)
@@ -89,15 +69,15 @@ function App() {
       onPaste={onPaste}
     >
       <p>
-        {Object.entries(dateParts).map(([part, stack], index) => (
+        {partsOrder.map((part, index) => (
           <span key={part}>
             <span
-              onClick={() => setSelectedPart(part as Part)}
+              onClick={() => setSelectedPart(part)}
               style={{
                 background: part === selectedPart ? "#FDBCB4" : "inherit",
               }}
             >
-              {stack.get().join("") || part}
+              {dateParts[part].join("") || part}
             </span>
             {index < 2 && <span key={part + index}>-</span>}
           </span>
