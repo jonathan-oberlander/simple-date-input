@@ -1,22 +1,52 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { parse, isValid } from "date-fns"
 import "./App.css"
 
-type Part = "dd" | "mm" | "yyyy"
+type Part = "dd" | "MM" | "yyyy"
 
 type DateParts = {
+  MM: string[]
   dd: string[]
-  mm: string[]
   yyyy: string[]
 }
 
 const initialParts: DateParts = {
-  mm: ["", ""],
-  dd: ["", ""],
-  yyyy: ["", "", "", ""],
+  MM: Array(2).fill(""),
+  dd: Array(2).fill(""),
+  yyyy: Array(4).fill(""),
 }
 
-const partsOrder: Part[] = ["mm", "dd", "yyyy"]
+const datePartsPosition: Record<Part, [number, number]> = {
+  MM: [0, 2],
+  dd: [2, 4],
+  yyyy: [4, 8],
+}
+
+const partsOrder: Part[] = ["MM", "dd", "yyyy"]
+
+const dateFormat = "MM-dd-yyyy"
+
+const fillDatePartBlanks = (part: Part, str: string) => {
+  const [start, end] = datePartsPosition[part]
+
+  return str
+    .slice(start, end)
+    .split("")
+    .concat(Array(2).fill(""))
+    .slice(0, end - start)
+}
+
+const removeNonDigitChars = (str: string) => str.replace(/[^0-9]/g, "")
+
+const produceAbitraryDate = (str: string) =>
+  `${str.slice(...datePartsPosition.MM)}-${str.slice(
+    ...datePartsPosition.dd
+  )}-${str.slice(...datePartsPosition.yyyy)}`
+
+const datePartsToString = (dateParts: DateParts) =>
+  Object.values(dateParts)
+    .flat()
+    .reduce((acc, parts) => (acc += parts), "")
 
 function App() {
   const [selectedPart, setSelectedPart] = useState<Part | undefined>()
@@ -49,27 +79,25 @@ function App() {
   }
 
   const onPaste = (e: React.ClipboardEvent) => {
-    const str = e.clipboardData.getData("Text").replace(/[^0-9]/g, "")
+    const text = e.clipboardData.getData("Text")
+    const cleanText = removeNonDigitChars(text)
 
     setDateParts(() => ({
-      mm: str.slice(0, 2).split("").concat(Array(2).fill("")).slice(0, 2),
-      dd: str.slice(2, 4).split("").concat(Array(2).fill("")).slice(0, 2),
-      yyyy: str.slice(4, 8).split("").concat(Array(4).fill("")).slice(0, 4),
+      MM: fillDatePartBlanks("MM", cleanText),
+      dd: fillDatePartBlanks("dd", cleanText),
+      yyyy: fillDatePartBlanks("yyyy", cleanText),
     }))
   }
 
-  const onBlur = () => setSelectedPart(undefined)
-
-  const validateDate = () => {
-    const str = Object.values(dateParts)
-      .flat()
-      .reduce((acc, parts) => (acc += parts), "")
-
-    const dateStr = `${str.slice(0, 2)}-${str.slice(2, 4)}-${str.slice(4, 8)}`
-    const parsed = parse(dateStr, "MM-dd-yyyy", new Date())
+  const getIsValidDate = () => {
+    const str = datePartsToString(dateParts)
+    const dateStr = produceAbitraryDate(str)
+    const parsed = parse(dateStr, dateFormat, new Date())
 
     return isValid(parsed)
   }
+
+  const onBlur = () => setSelectedPart(undefined)
 
   return (
     <div
@@ -80,7 +108,7 @@ function App() {
       onBlur={onBlur}
       onPaste={onPaste}
       style={{
-        border: !validateDate() ? "1px solid red" : "none",
+        border: getIsValidDate() ? "none" : "1px solid red",
       }}
     >
       <p>
