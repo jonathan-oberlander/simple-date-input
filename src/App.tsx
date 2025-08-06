@@ -1,4 +1,5 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { parse, isValid } from "date-fns"
 import "./App.css"
 
 type Part = "dd" | "mm" | "yyyy"
@@ -10,12 +11,12 @@ type DateParts = {
 }
 
 const initialParts: DateParts = {
-  dd: ["", ""],
   mm: ["", ""],
+  dd: ["", ""],
   yyyy: ["", "", "", ""],
 }
 
-const partsOrder: Part[] = ["dd", "mm", "yyyy"]
+const partsOrder: Part[] = ["mm", "dd", "yyyy"]
 
 function App() {
   const [selectedPart, setSelectedPart] = useState<Part | undefined>()
@@ -49,24 +50,38 @@ function App() {
 
   const onPaste = (e: React.ClipboardEvent) => {
     const str = e.clipboardData.getData("Text").replace(/[^0-9]/g, "")
-    
+
     setDateParts(() => ({
-      dd: str.slice(0, 2).split("").concat(Array(2).fill("")).slice(0, 2),
-      mm: str.slice(2, 4).split("").concat(Array(2).fill("")).slice(0, 2),
+      mm: str.slice(0, 2).split("").concat(Array(2).fill("")).slice(0, 2),
+      dd: str.slice(2, 4).split("").concat(Array(2).fill("")).slice(0, 2),
       yyyy: str.slice(4, 8).split("").concat(Array(4).fill("")).slice(0, 4),
     }))
   }
 
   const onBlur = () => setSelectedPart(undefined)
 
+  const validateDate = () => {
+    const str = Object.values(dateParts)
+      .flat()
+      .reduce((acc, parts) => (acc += parts), "")
+
+    const dateStr = `${str.slice(0, 2)}-${str.slice(2, 4)}-${str.slice(4, 8)}`
+    const parsed = parse(dateStr, "MM-dd-yyyy", new Date())
+
+    return isValid(parsed)
+  }
+
   return (
     <div
       role="textbox"
       tabIndex={0}
-      className="container"
+      className={"container"}
       onKeyDown={onKeyDown}
       onBlur={onBlur}
       onPaste={onPaste}
+      style={{
+        border: !validateDate() ? "1px solid red" : "none",
+      }}
     >
       <p>
         {partsOrder.map((part, index) => (
@@ -79,7 +94,7 @@ function App() {
             >
               {dateParts[part].join("") || part}
             </span>
-            {index < 2 && <span key={part + index}>-</span>}
+            {index < 2 && <span>-</span>}
           </span>
         ))}
       </p>
