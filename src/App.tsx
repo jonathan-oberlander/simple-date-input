@@ -114,6 +114,10 @@ function SimpleDateInput({ disabled }: { disabled: boolean }) {
   }
 
   const onPaste = (e: React.ClipboardEvent) => {
+    if (disabled) {
+      return
+    }
+
     const text = e.clipboardData.getData("Text")
     const cleanText = removeNonDigitChars(text)
 
@@ -147,7 +151,6 @@ function SimpleDateInput({ disabled }: { disabled: boolean }) {
           : "1px 1px 7px 1px rgba(13,188,180,0.57)",
       }}
     >
-      {/* {previousSelected.current?.toString()} - {selectedPart?.toString()} */}
       <p>
         {partsOrder.map((part, index) => (
           <span key={part}>
