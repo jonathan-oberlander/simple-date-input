@@ -7,5 +7,15 @@
 }
 
 .container {
-  border: 1px solid gainsboro;
+  border-radius: 5px;
+  padding: 10px;
+}
+
+.container.disabled {
+  cursor: not-allowed;
+}
+
+.container.disabled * {
+  opacity: 0.6;
+  pointer-events: none;
 }

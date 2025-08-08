@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { parse, isValid } from "date-fns"
 import "./App.css"
 
@@ -48,31 +48,66 @@ const datePartsToString = (dateParts: DateParts) =>
     .flat()
     .reduce((acc, parts) => (acc += parts), "")
 
-function App() {
+function SimpleDateInput({ disabled }: { disabled: boolean }) {
   const [selectedPart, setSelectedPart] = useState<Part | undefined>()
   const [dateParts, setDateParts] = useState<DateParts>(initialParts)
 
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    if (selectedPart) {
-      const idx = partsOrder.indexOf(selectedPart)
+  const previousSelected = useRef<Part | undefined>(undefined)
 
-      if (e.key === "ArrowRight" && idx < partsOrder.length - 1) {
-        setSelectedPart(partsOrder[idx + 1])
-      } else if (e.key === "ArrowLeft" && idx > 0) {
-        setSelectedPart(partsOrder[idx - 1])
-      }
+  const onBlur = () => setSelectedPart(undefined)
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (!selectedPart) {
+      return
     }
 
-    if (selectedPart && e.key.match(/[0-9]/)) {
-      setDateParts((parts) => {
-        const partArr = parts[selectedPart].slice()
+    // this needs to be performed as soon as we type
+    // checking this in the seDate won't work as it would yeild the same value
+    // for both prev and current
 
-        partArr.shift()
-        partArr.push(e.key)
+    // check if selected part changed since last key event
+    const shouldReset = previousSelected.current !== selectedPart
+    // then remember the selected part
+    previousSelected.current = selectedPart
+
+    const idx = partsOrder.indexOf(selectedPart)
+    if (e.key === "ArrowRight" && idx < partsOrder.length - 1) {
+      setSelectedPart(partsOrder[idx + 1])
+    } else if (e.key === "ArrowLeft" && idx > 0) {
+      setSelectedPart(partsOrder[idx - 1])
+    }
+
+    if (e.key.match(/[0-9]/)) {
+      setDateParts((prevParts) => {
+        const digits = prevParts[selectedPart]
+          .slice()
+          .map((v) => (shouldReset ? "" : v))
+
+        if (!digits.every(Boolean)) {
+          digits.shift()
+          digits.push(e.key)
+        } else if (idx < partsOrder.length - 1) {
+          setSelectedPart(partsOrder[idx + 1])
+        }
 
         return {
-          ...parts,
-          [selectedPart]: partArr,
+          ...prevParts,
+          [selectedPart]: digits,
+        }
+      })
+    }
+
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      const variation = e.key === "ArrowUp" ? 1 : -1
+
+      setDateParts((prevParts) => {
+        const digits = prevParts[selectedPart].slice()
+
+        return {
+          ...prevParts,
+          [selectedPart]: (Number(digits.join("")) + variation)
+            .toString()
+            .split(""),
         }
       })
     }
@@ -97,32 +132,34 @@ function App() {
     return isValid(parsed)
   }
 
-  const onBlur = () => setSelectedPart(undefined)
-
   return (
     <div
       role="textbox"
-      tabIndex={0}
-      className={"container"}
+      tabIndex={disabled ? -1 : 0}
+      className={`container ${disabled ? "disabled" : ""}`.trim()}
       onKeyDown={onKeyDown}
       onBlur={onBlur}
       onPaste={onPaste}
+      onFocus={() => setSelectedPart(previousSelected.current)}
       style={{
-        border: getIsValidDate() ? "none" : "1px solid red",
+        boxShadow: getIsValidDate()
+          ? "none"
+          : "1px 1px 7px 1px rgba(13,188,180,0.57)",
       }}
     >
+      {/* {previousSelected.current?.toString()} - {selectedPart?.toString()} */}
       <p>
         {partsOrder.map((part, index) => (
           <span key={part}>
             <span
               onClick={() => setSelectedPart(part)}
               style={{
-                background: part === selectedPart ? "#FDBCB4" : "inherit",
+                background: part === selectedPart ? "#0DBCB4" : "inherit",
               }}
             >
               {dateParts[part].join("") || part}
             </span>
-            {index < 2 && <span>-</span>}
+            {index < partsOrder.length - 1 && <span>-</span>}
           </span>
         ))}
       </p>
@@ -130,4 +167,10 @@ function App() {
   )
 }
 
-export default App
+export default function App() {
+  return (
+    <div>
+      <SimpleDateInput disabled={true} />
+    </div>
+  )
+}
