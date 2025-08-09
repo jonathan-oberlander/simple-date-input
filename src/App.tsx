@@ -98,16 +98,14 @@ function SimpleDateInput({ disabled }: { disabled: boolean }) {
     }
 
     if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-      const variation = e.key === "ArrowUp" ? 1 : -1
+      const step = e.key === "ArrowUp" ? 1 : -1
 
       setDateParts((prevParts) => {
         const digits = prevParts[selectedPart].slice()
 
         return {
           ...prevParts,
-          [selectedPart]: (Number(digits.join("")) + variation)
-            .toString()
-            .split(""),
+          [selectedPart]: (Number(digits.join("")) + step).toString().split(""),
         }
       })
     }
@@ -137,21 +135,17 @@ function SimpleDateInput({ disabled }: { disabled: boolean }) {
   }
 
   return (
-    <div
-      role="textbox"
-      tabIndex={disabled ? -1 : 0}
-      className={`container ${disabled ? "disabled" : ""}`.trim()}
-      onKeyDown={onKeyDown}
-      onBlur={onBlur}
-      onPaste={onPaste}
-      onFocus={() => setSelectedPart(previousSelected.current)}
-      style={{
-        boxShadow: getIsValidDate()
-          ? "none"
-          : "1px 1px 7px 1px rgba(13,188,180,0.57)",
-      }}
-    >
-      <p>
+    <div className={`container ${disabled ? "disabled" : ""}`.trim()}>
+      <p
+        role="button"
+        aria-label="Date input box"
+        aria-description="A date input in MM-dd-yyyy format"
+        tabIndex={disabled ? -1 : 0}
+        onKeyDown={onKeyDown}
+        onBlur={onBlur}
+        onPaste={onPaste}
+        onFocus={() => setSelectedPart(previousSelected.current)}
+      >
         {partsOrder.map((part, index) => (
           <span key={part}>
             <span
@@ -166,14 +160,18 @@ function SimpleDateInput({ disabled }: { disabled: boolean }) {
           </span>
         ))}
       </p>
+      {!getIsValidDate() && <span>Please enter a valid date</span>}
     </div>
   )
 }
 
 export default function App() {
+  const [disabled, setDisabled] = useState(false)
+
   return (
     <div>
-      <SimpleDateInput disabled={true} />
+      <button onClick={() => setDisabled((v) => !v)}>disable input</button>
+      <SimpleDateInput disabled={disabled} />
     </div>
   )
 }
